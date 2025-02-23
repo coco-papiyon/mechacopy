@@ -110,7 +110,7 @@ func TestCopyFiles(t *testing.T) {
 
 			// コピー実行
 			job := &jobStatus{}
-			err := copyFiles(baseDir, "src", "test/dst", job)
+			err := copyFiles(baseDir, "src", "testdata/dst", job)
 			for _, file := range tt.testFiles {
 				src := filepath.Join(srcDir, file)
 				dst := filepath.Base(file)
@@ -169,7 +169,7 @@ func TestCopyFilesParallel(t *testing.T) {
 			baseDir := filepath.Join(testDir, tt.name, "src")
 			prepareDirs(t, tt, baseDir)
 			// コピー実行
-			err := CopyFiles(baseDir, "test/dst")
+			err := CopyFiles(baseDir, "testdata/dst")
 			for _, file := range tt.testFiles {
 				src := filepath.Join(baseDir, file)
 				dst := filepath.Join(testDir, "dst", file)

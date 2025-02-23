@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 )
 
@@ -222,25 +221,4 @@ func copyFile(src, dst string) error {
 	}
 
 	return copyTimestamps(src, dst)
-}
-
-// 作成日時、更新日時をコピーする
-func copyTimestamps(src, dst string) error {
-	srcInfo, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-
-	modTime := srcInfo.ModTime()
-	accessTime := modTime
-
-	if runtime.GOOS == "windows" {
-		// Windowsで作成日時、更新日時のコピー
-		err = copyTimestampsWindows(src, dst)
-	} else {
-		// Linux/macOS: os.Chtimes() を使用
-		err = os.Chtimes(dst, accessTime, modTime)
-	}
-
-	return err
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // Windows で作成日・更新日・アクセス日時をコピー
-func copyTimestampsWindows(src, dst string) error {
+func copyTimestamps(src, dst string) error {
 	// Windows の API を使ってタイムスタンプを取得
 	srcPath, err := windows.UTF16PtrFromString(src)
 	if err != nil {
