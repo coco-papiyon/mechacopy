@@ -169,7 +169,7 @@ func copyFiles(baseDir, srcBaseDir, dstDir string, job *jobStatus) error {
 			if err != nil {
 				errFile := filepath.Join(srcBaseDir, entry.Name())
 				job.addErrorFile(errFile)
-				return err
+				continue
 			}
 
 			// ファイルサイズが大きい場合はログ出力
@@ -184,9 +184,17 @@ func copyFiles(baseDir, srcBaseDir, dstDir string, job *jobStatus) error {
 	return nil
 }
 
-// ファイルをコピーする
+// ファイルコピーし、更新日時等変更する
 func copyFile(src, dst string) error {
+	err := copyData(src, dst)
+	if err != nil {
+		return err
+	}
+	return copyTimestamps(src, dst)
+}
 
+// ファイルコピー
+func copyData(src, dst string) error {
 	// 出力先ディレクトリを作成
 	dstDir := filepath.Dir(dst)
 	err := os.MkdirAll(dstDir, os.ModePerm)
@@ -215,10 +223,5 @@ func copyFile(src, dst string) error {
 	}
 
 	// ファイルのバッファをフラッシュ
-	err = dstFile.Sync()
-	if err != nil {
-		return err
-	}
-
-	return copyTimestamps(src, dst)
+	return dstFile.Sync()
 }
