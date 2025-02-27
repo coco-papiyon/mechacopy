@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -278,14 +279,19 @@ func TestCopyRetry(t *testing.T) {
 	// 準備
 	srcDir := filepath.Join(testDir, "src")
 	dstDir := filepath.Join(testDir, "dst")
-	errFiles := []string{"file1.txt"}
+	errFiles := []string{}
+	for i := 0; i < 30; i++ {
+		errFiles = append(errFiles, fmt.Sprintf("test%d.txt", i))
+	}
+
 	job := &jobStatus{
 		errorFiles: errFiles,
 	}
 	// 数秒後にファイルを作成
 	go func() {
-		time.Sleep(3 * time.Second)
-		for _, file := range errFiles {
+		time.Sleep(2 * time.Second)
+		for i, file := range errFiles {
+			time.Sleep(time.Duration(i*10) * time.Millisecond)
 			testfile := filepath.Join(srcDir, file)
 			createTestFile(testfile)
 		}
@@ -296,7 +302,9 @@ func TestCopyRetry(t *testing.T) {
 	Config.SleepTime = 1
 	copyFileTry(srcDir, dstDir, job)
 
-	src := filepath.Join(srcDir, "file1.txt")
-	dst := filepath.Join(dstDir, "file1.txt")
-	checkCopy(t, src, dst, nil)
+	for _, file := range errFiles {
+		src := filepath.Join(srcDir, file)
+		dst := filepath.Join(dstDir, file)
+		checkCopy(t, src, dst, nil)
+	}
 }

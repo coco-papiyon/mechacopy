@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -54,6 +55,7 @@ func CopyFiles(srcDir string, dstDir string) error {
 	job.wg.Wait()
 
 	// エラーリトライ
+	fmt.Println(job.errorFiles)
 	copyFileTry(srcDir, dstDir, job)
 
 	// 処理時間を取得
@@ -95,15 +97,35 @@ func copyFileTry(srcDir, dstDir string, job *jobStatus) {
 		errFiles := make([]string, errCount)
 		copy(errFiles, job.errorFiles)
 		job.errorFiles = []string{}
-		for _, file := range errFiles {
-			src := filepath.Join(srcDir, file)
-			dst := filepath.Join(dstDir, file)
-			err := copyFile(src, dst)
-			if err != nil {
-				slog.Error("File Copy", "file", src, "ERROR", err)
-				job.errorFiles = append(job.errorFiles, file)
-			}
+		job.wg = sync.WaitGroup{}
+		job.wg.Add(len(errFiles))
+		job.ch = make(chan string)
+
+		// 指定した数スレッド(goroutine)を起動
+		for i := 0; i < Config.CopyThread; i++ {
+			go retryWorker(srcDir, dstDir, job)
 		}
+
+		// コピー処理を実行
+		for _, file := range errFiles {
+			job.ch <- file
+		}
+		job.wg.Wait()
+	}
+}
+
+// 非同期でコピーを行う
+func retryWorker(srcDir, dstDir string, job *jobStatus) {
+	for {
+		file := <-job.ch
+		src := filepath.Join(srcDir, file)
+		dst := filepath.Join(dstDir, file)
+		err := copyFile(src, dst)
+		if err != nil {
+			slog.Error("File Copy", "file", src, "ERROR", err)
+			job.addErrorFile(file)
+		}
+		job.wg.Done()
 	}
 }
 
