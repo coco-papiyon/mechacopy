@@ -11,11 +11,15 @@ import (
 
 type CopyConfig struct {
 	CopyThread  int
+	RetryCount  int
+	SleepTime   int
 	TargetFiles []string
 }
 
 var Config = &CopyConfig{
 	CopyThread:  10,
+	RetryCount:  10,
+	SleepTime:   10,
 	TargetFiles: []string{"*"},
 }
 
@@ -49,6 +53,9 @@ func CopyFiles(srcDir string, dstDir string) error {
 	// 処理待ち
 	job.wg.Wait()
 
+	// エラーリトライ
+	copyFileTry(srcDir, dstDir, job)
+
 	// 処理時間を取得
 	end := time.Now()
 	duration := end.Sub(start)
@@ -63,6 +70,33 @@ func CopyFiles(srcDir string, dstDir string) error {
 	fmt.Printf("    Skip:    %d\n", job.skipFileCnt)
 	fmt.Printf("    Error:   %d\n", job.errorFileCnt)
 	return nil
+}
+
+// エラーとなったファイルのコピーをリトライ
+func copyFileTry(srcDir, dstDir string, job *jobStatus) {
+	for i := 0; i < Config.RetryCount; i++ {
+		errCount := len(job.errorFiles)
+		if errCount == 0 {
+			break
+		}
+
+		slog.Info("Retry Error Files", "Count", i, "Files", errCount)
+		time.Sleep(time.Duration(Config.SleepTime) * time.Second)
+
+		// エラーとなったファイルのコピーをリトライ
+		errFiles := make([]string, errCount)
+		copy(errFiles, job.errorFiles)
+		job.errorFiles = []string{}
+		for _, file := range errFiles {
+			src := filepath.Join(srcDir, file)
+			dst := filepath.Join(dstDir, file)
+			err := copyFile(src, dst)
+			if err != nil {
+				slog.Error("File Copy", "file", src, "ERROR", err)
+				job.errorFiles = append(job.errorFiles, file)
+			}
+		}
+	}
 }
 
 // ファイルをコピーするワーカー(同時実行制御)
@@ -167,6 +201,7 @@ func copyFiles(baseDir, srcBaseDir, dstDir string, job *jobStatus) error {
 			// ファイルコピー
 			err = copyFile(srcFile, dstFile)
 			if err != nil {
+				slog.Error("File Copy", "file", srcFile, "ERROR", err)
 				errFile := filepath.Join(srcBaseDir, entry.Name())
 				job.addErrorFile(errFile)
 				continue

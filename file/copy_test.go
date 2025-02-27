@@ -12,6 +12,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Infoログを非表示にする
+func disableInfoLog() {
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelWarn,
+	})
+	slog.SetDefault(slog.New(handler))
+}
+
+// Infoログを表示する
+func enableInfoLog() {
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+	slog.SetDefault(slog.New(handler))
+}
+
 func checkCopy(t *testing.T, src, dst string, err error) {
 	require.NoError(t, err, "copyFile")
 
@@ -154,12 +170,9 @@ func TestCopyFilesParallel(t *testing.T) {
 
 	os.RemoveAll(testDir)
 
-	// Infoログを非表示にする
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelWarn,
-	})
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
+	// Infoログを非表示にする(テスト後に戻す)
+	disableInfoLog()
+	defer enableInfoLog()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -256,4 +269,34 @@ func TestIsFileDiff(t *testing.T) {
 	// fmt.Println(fileInfo2.ModTime().UnixNano(), fileInfo2.Name(), fileInfo2.Size())
 	// fmt.Println(fileInfo3.ModTime().UnixNano(), fileInfo3.Name(), fileInfo3.Size())
 	// fmt.Println(fileInfo4.ModTime().UnixNano(), fileInfo4.Name(), fileInfo4.Size())
+}
+
+func TestCopyRetry(t *testing.T) {
+	os.RemoveAll(testDir)
+	defer os.RemoveAll(testDir)
+
+	// 準備
+	srcDir := filepath.Join(testDir, "src")
+	dstDir := filepath.Join(testDir, "dst")
+	errFiles := []string{"file1.txt"}
+	job := &jobStatus{
+		errorFiles: errFiles,
+	}
+	// 数秒後にファイルを作成
+	go func() {
+		time.Sleep(3 * time.Second)
+		for _, file := range errFiles {
+			testfile := filepath.Join(srcDir, file)
+			createTestFile(testfile)
+		}
+	}()
+
+	// コピー実行
+	Config.RetryCount = 10
+	Config.SleepTime = 1
+	copyFileTry(srcDir, dstDir, job)
+
+	src := filepath.Join(srcDir, "file1.txt")
+	dst := filepath.Join(dstDir, "file1.txt")
+	checkCopy(t, src, dst, nil)
 }

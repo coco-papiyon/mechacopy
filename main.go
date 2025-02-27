@@ -15,6 +15,8 @@ func main() {
 
 	// オプションの定義
 	mt := flag.Int("MT", 0, "n 個のスレッドのマルチスレッド コピーを実行する (既定値 10)")
+	retry := flag.Int("R", 0, "失敗したコピーに対する再試行数 (既定値 10)")
+	wait := flag.Int("W", 0, "試行と再試行の間の待機時間 (既定値 10)")
 
 	// Usageの出力
 	flag.Usage = func() {
@@ -48,7 +50,15 @@ func main() {
 
 	if *mt > 0 {
 		file.Config.CopyThread = *mt
-		logger.Info("          ", "スレッド数", *mt)
+		logger.Info(fmt.Sprintf("          スレッド数: %d", *mt))
+	}
+	if *retry > 0 {
+		file.Config.RetryCount = *retry
+		logger.Info(fmt.Sprintf("          リトライ回数: %d", *retry))
+	}
+	if *wait > 0 {
+		file.Config.SleepTime = *wait
+		logger.Info(fmt.Sprintf("          リトライ待機時間: %d", *wait))
 	}
 	file.CopyFiles(src, dst)
 }

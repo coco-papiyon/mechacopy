@@ -50,6 +50,12 @@ var recursionCase = []testCase{
 
 // テスト用のファイル作成
 func createTestFile(filePath string) error {
+	dirpath := filepath.Dir(filePath)
+	err := os.MkdirAll(dirpath, 0755)
+	if err != nil {
+		return err
+	}
+
 	file, err := os.Create(filePath)
 	if err != nil {
 		return err
