@@ -15,11 +15,10 @@ type jobStatus struct {
 	totalCnt   int32
 
 	successFileCnt int32
-	errorFileCnt   int32
 	skipFileCnt    int32
 
 	errorFiles []string
-	errorDirs  []string	
+	errorDirs  []string
 }
 
 func (j *jobStatus) getStatus() string {
@@ -48,8 +47,6 @@ func (j *jobStatus) addSkipFile() {
 }
 
 func (j *jobStatus) addErrorFile(file string) {
-	atomic.AddInt32(&j.errorFileCnt, 1)
-
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.errorFiles == nil {

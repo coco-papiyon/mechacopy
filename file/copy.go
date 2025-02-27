@@ -63,12 +63,20 @@ func CopyFiles(srcDir string, dstDir string) error {
 	minutes := int(duration.Minutes()) % 60
 	seconds := int(duration.Seconds()) % 60
 
+	errCnt := int32(len(job.errorFiles))
 	slog.Info("All File COPY Finished")
 	fmt.Printf("処理時間: %02d時間 %02d分 %02d秒\n", hours, minutes, seconds)
-	fmt.Printf("    Total:   %d\n", job.successFileCnt+job.skipFileCnt+job.errorFileCnt)
+	fmt.Printf("    Total:   %d\n", job.successFileCnt+job.skipFileCnt+errCnt)
 	fmt.Printf("    Success: %d\n", job.successFileCnt)
 	fmt.Printf("    Skip:    %d\n", job.skipFileCnt)
-	fmt.Printf("    Error:   %d\n", job.errorFileCnt)
+	fmt.Printf("    Error:   %d\n", errCnt)
+
+	if errCnt > 0 {
+		fmt.Printf("ERROR Files")
+		for _, file := range job.errorFiles {
+			fmt.Printf("  %s\n", file)
+		}
+	}
 	return nil
 }
 
