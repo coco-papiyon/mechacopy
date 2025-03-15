@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"flag"
@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/coco-papiyon/mechacopy/file"
+	"github.com/coco-papiyon/mechacopy/worker"
 )
 
-func main() {
+func Args(argLen int) (*worker.Config, []string) {
 	var logger *slog.Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
@@ -29,36 +29,26 @@ func main() {
 
 	// オプションを解析
 	flag.Parse()
-	args := flag.Args()
 
+	args := flag.Args()
 	// 必須の引数をチェック（必須は2）
-	if len(args) < 2 {
+	if len(args) < argLen {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	// 引数を取得
-	src := args[0]
-	dst := args[1]
-	extraArgs := args[2:]
-
-	// コピー動作設定
-	if len(extraArgs) > 0 {
-		file.Config.TargetFiles = extraArgs
-	}
-	logger.Info("Start Copy", "コピー元", src, "コピー先", dst, "対象ファイル", file.Config.TargetFiles)
-
+	config := worker.InitConfig()
 	if *mt > 0 {
-		file.Config.CopyThread = *mt
-		logger.Info(fmt.Sprintf("          スレッド数: %d", *mt))
+		config.CopyThread = *mt
+		logger.Info(fmt.Sprintf("スレッド数: %d", *mt))
 	}
 	if *retry > 0 {
-		file.Config.RetryCount = *retry
-		logger.Info(fmt.Sprintf("          リトライ回数: %d", *retry))
+		config.RetryCount = *retry
+		logger.Info(fmt.Sprintf("リトライ回数: %d", *retry))
 	}
 	if *wait > 0 {
-		file.Config.SleepTime = *wait
-		logger.Info(fmt.Sprintf("          リトライ待機時間: %d", *wait))
+		config.SleepTime = *wait
+		logger.Info(fmt.Sprintf("リトライ待機時間: %d", *wait))
 	}
-	file.CopyFiles(src, dst)
+	return config, args
 }

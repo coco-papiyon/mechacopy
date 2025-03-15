@@ -1,9 +1,10 @@
-package file
+package directory
 
 import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 )
 
@@ -85,5 +86,11 @@ func GetDirs(path string) ([]string, error) {
 	for result := range ch {
 		dirs = append(dirs, result...)
 	}
+
+	// 降順にソート
+	sort.Slice(dirs, func(i, j int) bool {
+		return dirs[i] > dirs[j]
+	})
+
 	return dirs, nil
 }

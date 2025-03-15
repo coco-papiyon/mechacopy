@@ -1,4 +1,5 @@
-mechacopy
+cmd/mechacopy/mechacopy
+cmd/mechadel/mechadel
 *.exe
 *.zip
 testdata
