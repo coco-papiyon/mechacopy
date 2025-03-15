@@ -1,4 +1,4 @@
-package file
+package worker
 
 import (
 	"fmt"
@@ -6,10 +6,13 @@ import (
 	"sync/atomic"
 )
 
-type jobStatus struct {
-	mu         sync.Mutex
-	wg         sync.WaitGroup
-	ch         chan string
+type JobStatus struct {
+	mu sync.Mutex
+	wg sync.WaitGroup
+	ch chan string
+
+	config *Config
+
 	successCnt int32
 	errorCnt   int32
 	totalCnt   int32
@@ -21,7 +24,7 @@ type jobStatus struct {
 	errorDirs  []string
 }
 
-func (j *jobStatus) getStatus() string {
+func (j *JobStatus) GetStatus() string {
 	successCnt := atomic.LoadInt32(&j.successCnt)
 	errCnt := atomic.LoadInt32(&j.errorCnt)
 	progress := float32(successCnt+errCnt) / float32(j.totalCnt) * 100
@@ -30,23 +33,23 @@ func (j *jobStatus) getStatus() string {
 	)
 }
 
-func (j *jobStatus) addSuccess() {
+func (j *JobStatus) AddSuccess() {
 	atomic.AddInt32(&j.successCnt, 1)
 }
 
-func (j *jobStatus) addError() {
+func (j *JobStatus) AddError() {
 	atomic.AddInt32(&j.errorCnt, 1)
 }
 
-func (j *jobStatus) addSuccessFile() {
+func (j *JobStatus) AddSuccessFile() {
 	atomic.AddInt32(&j.successFileCnt, 1)
 }
 
-func (j *jobStatus) addSkipFile() {
+func (j *JobStatus) AddSkipFile() {
 	atomic.AddInt32(&j.skipFileCnt, 1)
 }
 
-func (j *jobStatus) addErrorFile(file string) {
+func (j *JobStatus) AddErrorFile(file string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.errorFiles == nil {
@@ -55,7 +58,7 @@ func (j *jobStatus) addErrorFile(file string) {
 	j.errorFiles = append(j.errorFiles, file)
 }
 
-func (j *jobStatus) addErrorDirs(file string) {
+func (j *JobStatus) AddErrorDirs(file string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	if j.errorDirs == nil {
