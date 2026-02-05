@@ -107,3 +107,27 @@ func TestIsFileDiff(t *testing.T) {
 	// fmt.Println(fileInfo3.ModTime().UnixNano(), fileInfo3.Name(), fileInfo3.Size())
 	// fmt.Println(fileInfo4.ModTime().UnixNano(), fileInfo4.Name(), fileInfo4.Size())
 }
+
+func TestIsCopyFile(t *testing.T) {
+	cases := []struct {
+		name        string
+		targetFiles []string
+		file        string
+		expect      bool
+	}{
+		{"ワイルドカード一致", []string{"*.txt"}, "file1.txt", true},
+		{"ワイルドカード不一致", []string{"*.log"}, "file1.txt", false},
+		{"複数パターン一致", []string{"*.log", "*.txt"}, "file1.txt", true},
+		{"複数パターン不一致", []string{"*.log", "*.md"}, "file1.txt", false},
+		{"ファイル名一致", []string{"file1.txt"}, "file1.txt", true},
+		{"ファイル名不一致", []string{"file2.txt"}, "file1.txt", false},
+		{"空配列", []string{}, "file1.txt", false},
+		{"全一致", []string{"*"}, "file1.txt", true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			result := IsCopyFile(c.file, c.targetFiles)
+			assert.Equal(t, c.expect, result)
+		})
+	}
+}
