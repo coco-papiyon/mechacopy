@@ -2,4 +2,6 @@ cmd/mechacopy/mechacopy
 cmd/mechadel/mechadel
 *.exe
 *.zip
+*.out
 testdata
+report.xml
